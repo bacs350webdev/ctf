@@ -1,0 +1,173 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTTP CTF Lab - Login</title>
+    <!-- <link rel="stylesheet" href="styles.css"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="page-root">
+
+    <div id="loading" class="loading">Status: Loading...</div>
+
+    <div id="app-container" class="card hidden">
+        <h1 class="title">Vulnerable Login Portal</h1>
+        <p class="subtitle">Capture The Flag Lab: Insecure HTTP Challenge</p>
+        
+        <div id="login-form-area">
+            <p class="warning">
+                 <strong>Security Warning:</strong> This login is deliberately using <strong>unencrypted HTTP</strong>.
+            </p>
+
+            <form id="login-form" class="form">
+                <div class="form-row">
+                    <label for="student_name" class="label">Your Name (For Flag)</label>
+                    <input type="text" id="student_name" name="student_name" required class="input" placeholder="Enter your name (e.g., Jane Doe)">
+                </div>
+                <div class="form-row">
+                    <label for="username" class="label">Username</label>
+                    <input type="text" id="username" name="username" required class="input" placeholder="e.g., {{ admin_username_hint }}">
+                </div>
+                <div class="form-row">
+                    <label for="password" class="label">Password</label>
+                    <input type="password" id="password" name="password" required class="input" placeholder="Enter captured password">
+                </div>
+                
+                <button type="submit" id="submit-button" class="btn btn-primary">
+                    Access Secret File (Capture Flag)
+                </button>
+            </form>
+        </div>
+
+        <div id="result-area" class="result hidden">
+            <h2 id="result-title" class="result-title"></h2>
+            <p id="student-name-display" class="result-sub"></p>
+            <p id="result-message" class="result-msg"></p>
+            
+            <div id="flag-display" class="flag hidden">
+                <p class="flag-label">[] <strong>CAPTURED FLAG</strong></p>
+                <code id="flag-value" class="flag-value"></code>
+            </div>
+
+            <div id="secret-display" class="secret hidden">
+                <p class="secret-label">[] <strong>SECRET MESSAGE</strong></p>
+                <p id="secret-message-value" class="secret-value"></p>
+            </div>
+
+            <button onclick="window.location.reload()" class="btn btn-secondary">Try Another User</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '{{ api_base_url }}';
+        const form = document.getElementById('login-form');
+        const submitButton = document.getElementById('submit-button');
+        const loginFormArea = document.getElementById('login-form-area');
+        const resultArea = document.getElementById('result-area');
+        const resultTitle = document.getElementById('result-title');
+        const resultMessage = document.getElementById('result-message');
+        const studentNameDisplay = document.getElementById('student-name-display');
+        const flagDisplay = document.getElementById('flag-display');
+        const flagValue = document.getElementById('flag-value');
+        const secretDisplay = document.getElementById('secret-display');
+        const secretMessageValue = document.getElementById('secret-message-value');
+        const loadingElement = document.getElementById('loading');
+        const appContainer = document.getElementById('app-container');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Hide loading and show app container once DOM is ready
+            loadingElement.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            submitButton.disabled = true;
+            submitButton.textContent = 'Processing...';
+
+            const student_name = document.getElementById('student_name').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/ctf_access`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password, student_name })
+                });
+
+                const result = await response.json();
+
+                // Hide form, show result area
+                loginFormArea.classList.add('hidden');
+                resultArea.classList.remove('hidden');
+                
+                // Set the student name display
+                const display_name = result.student_name || student_name || 'Unknown Student';
+                studentNameDisplay.textContent = `Student: ${display_name}`;
+
+                if (result.success) {
+                    if (result.is_admin) {
+                        // Admin success (CTF captured)
+                        resultArea.classList.remove('bg-yellow','bg-red');
+                        resultArea.classList.add('bg-green');
+                        resultTitle.textContent = 'Access Level: Administrator';
+                        resultTitle.classList.remove('text-yellow','text-red');
+                        resultTitle.classList.add('text-green');
+                        resultMessage.textContent = result.message;
+                        
+                        flagDisplay.classList.remove('hidden');
+                        flagValue.textContent = result.flag;
+                        
+                        secretDisplay.classList.remove('hidden');
+                        secretMessageValue.textContent = result.secret_message;
+
+                    } else {
+                        // Non-admin success
+                        resultArea.classList.remove('bg-green','bg-red');
+                        resultArea.classList.add('bg-yellow');
+                        resultTitle.textContent = 'Access Level: Normal User';
+                        resultTitle.classList.remove('text-green','text-red');
+                        resultTitle.classList.add('text-yellow');
+                        resultMessage.textContent = result.message;
+                        
+                        flagDisplay.classList.add('hidden');
+                        secretDisplay.classList.add('hidden');
+                    }
+                } else {
+                    // Authentication Failure
+                    resultArea.classList.remove('bg-green','bg-yellow');
+                    resultArea.classList.add('bg-red');
+                    resultTitle.textContent = 'Access Denied';
+                    resultTitle.classList.remove('text-green','text-yellow');
+                    resultTitle.classList.add('text-red');
+                    resultMessage.textContent = result.message || 'An unknown error occurred.';
+
+                    flagDisplay.classList.add('hidden');
+                    secretDisplay.classList.add('hidden');
+                }
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                
+                // If the fetch fails completely (e.g., server down or CORS issue)
+                loginFormArea.classList.add('hidden');
+                resultArea.classList.remove('hidden');
+                resultArea.classList.add('bg-red');
+                resultTitle.textContent = 'Connection Error';
+                resultTitle.classList.add('text-red');
+                resultMessage.textContent = `Could not connect to the API server at ${API_BASE_URL}. Ensure the server is running.`;
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Access Secret File (Capture Flag)';
+            }
+        });
+    </script>
+</body>
+</html>
+

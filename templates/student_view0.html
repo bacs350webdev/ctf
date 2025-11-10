@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTTP CTF Lab - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7fafc;
+        }
+        .container-card {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        .container-card:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div id="loading" class="text-gray-600">Status: Loading...</div>
+
+    <div id="app-container" class="w-full max-w-md bg-white rounded-xl container-card p-6 md:p-8 hidden">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">Vulnerable Login Portal</h1>
+        <p class="text-center text-gray-500 mb-6">Capture The Flag Lab: Insecure HTTP Challenge</p>
+        
+        <div id="login-form-area">
+            <p class="text-sm text-center text-red-600 bg-red-50 p-3 rounded-lg border border-red-200 mb-4">
+                ⚠️ **Security Warning:** This login is deliberately using **unencrypted HTTP**.
+            </p>
+
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label for="student_name" class="block text-sm font-medium text-gray-700">Your Name (For Flag)</label>
+                    <input type="text" id="student_name" name="student_name" required 
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                           placeholder="Enter your name (e.g., Jane Doe)">
+                </div>
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="text" id="username" name="username" required 
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                           placeholder="e.g., {{ admin_username_hint }}">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" name="password" required 
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                           placeholder="Enter captured password">
+                </div>
+                
+                <button type="submit" id="submit-button"
+                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                    Access Secret File (Capture Flag)
+                </button>
+            </form>
+        </div>
+
+        <div id="result-area" class="mt-6 p-4 rounded-lg hidden">
+            <h2 id="result-title" class="text-xl font-semibold mb-2"></h2>
+            <p id="student-name-display" class="text-sm font-medium text-gray-700 mb-2"></p>
+            <p id="result-message" class="text-sm text-gray-700 mb-4"></p>
+            
+            <div id="flag-display" class="hidden bg-green-100 p-4 rounded-lg border border-green-300 mt-4">
+                <p class="text-sm font-medium text-green-700">✅ **CAPTURED FLAG**</p>
+                <code id="flag-value" class="block text-lg font-mono text-green-900 break-all mt-1"></code>
+            </div>
+
+            <div id="secret-display" class="hidden bg-blue-100 p-4 rounded-lg border border-blue-300 mt-4">
+                <p class="text-sm font-medium text-blue-700">📜 **SECRET MESSAGE**</p>
+                <p id="secret-message-value" class="block text-base text-blue-900 mt-1 italic"></p>
+            </div>
+
+            <button onclick="window.location.reload()"
+                class="mt-4 w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150 ease-in-out">
+                Try Another User
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '{{ api_base_url }}';
+        const form = document.getElementById('login-form');
+        const submitButton = document.getElementById('submit-button');
+        const loginFormArea = document.getElementById('login-form-area');
+        const resultArea = document.getElementById('result-area');
+        const resultTitle = document.getElementById('result-title');
+        const resultMessage = document.getElementById('result-message');
+        const studentNameDisplay = document.getElementById('student-name-display');
+        const flagDisplay = document.getElementById('flag-display');
+        const flagValue = document.getElementById('flag-value');
+        const secretDisplay = document.getElementById('secret-display');
+        const secretMessageValue = document.getElementById('secret-message-value');
+        const loadingElement = document.getElementById('loading');
+        const appContainer = document.getElementById('app-container');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Hide loading and show app container once DOM is ready
+            loadingElement.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            submitButton.disabled = true;
+            submitButton.textContent = 'Processing...';
+
+            const student_name = document.getElementById('student_name').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/ctf_access`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password, student_name })
+                });
+
+                const result = await response.json();
+
+                // Hide form, show result area
+                loginFormArea.classList.add('hidden');
+                resultArea.classList.remove('hidden');
+                
+                // Set the student name display
+                const display_name = result.student_name || student_name || 'Unknown Student';
+                studentNameDisplay.textContent = `Student: ${display_name}`;
+
+                if (result.success) {
+                    if (result.is_admin) {
+                        // Admin success (CTF captured)
+                        resultArea.classList.remove('bg-yellow-50', 'bg-red-50');
+                        resultArea.classList.add('bg-green-50');
+                        resultTitle.textContent = 'Access Level: Administrator';
+                        resultTitle.classList.remove('text-yellow-800', 'text-red-800');
+                        resultTitle.classList.add('text-green-800');
+                        resultMessage.textContent = result.message;
+                        
+                        flagDisplay.classList.remove('hidden');
+                        flagValue.textContent = result.flag;
+                        
+                        secretDisplay.classList.remove('hidden');
+                        secretMessageValue.textContent = result.secret_message;
+
+                    } else {
+                        // Non-admin success
+                        resultArea.classList.remove('bg-green-50', 'bg-red-50');
+                        resultArea.classList.add('bg-yellow-50');
+                        resultTitle.textContent = 'Access Level: Normal User';
+                        resultTitle.classList.remove('text-green-800', 'text-red-800');
+                        resultTitle.classList.add('text-yellow-800');
+                        resultMessage.textContent = result.message;
+                        
+                        flagDisplay.classList.add('hidden');
+                        secretDisplay.classList.add('hidden');
+                    }
+                } else {
+                    // Authentication Failure
+                    resultArea.classList.remove('bg-green-50', 'bg-yellow-50');
+                    resultArea.classList.add('bg-red-50');
+                    resultTitle.textContent = 'Access Denied';
+                    resultTitle.classList.remove('text-green-800', 'text-yellow-800');
+                    resultTitle.classList.add('text-red-800');
+                    resultMessage.textContent = result.message || 'An unknown error occurred.';
+
+                    flagDisplay.classList.add('hidden');
+                    secretDisplay.classList.add('hidden');
+                }
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                
+                // If the fetch fails completely (e.g., server down or CORS issue)
+                loginFormArea.classList.add('hidden');
+                resultArea.classList.remove('hidden');
+                resultArea.classList.add('bg-red-50');
+                resultTitle.textContent = 'Connection Error';
+                resultTitle.classList.add('text-red-800');
+                resultMessage.textContent = `Could not connect to the API server at ${API_BASE_URL}. Ensure the server is running.`;
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Access Secret File (Capture Flag)';
+            }
+        });
+    </script>
+</body>
+</html>
