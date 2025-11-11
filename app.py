@@ -96,8 +96,8 @@ def index():
         # No configuration hints are passed.
     }
     # Using the single, simplified student_view template
-    # return render_template('student_view.html', **template_data)
-    return render_template('instructor_view.html', **template_data)
+    return render_template('student_view.html', **template_data)
+    #return render_template('instructor_view.html', **template_data)
 
 @app.route('/ctf_access', methods=['POST'])
 def ctf_access():
