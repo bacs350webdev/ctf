@@ -1,11 +1,17 @@
 import hashlib
 
 # --- GLOBAL CONFIGURATION ---
-SALT = "Fall2025"
-SECRET_MESSAGE = "Our greatest weakness lies in giving up. The most certain way to succeed is always to try just one more time."
-ADMIN_PLAINTEXT_PASSWORD = "Bacs495_2025" # This is the password students will capture in the PCAP
-NORMAL_PLAINTEXT_PASSWORD_1 = "userpass123"
-NORMAL_PLAINTEXT_PASSWORD_2 = "secureuser99"
+SALT = "Fall2026"
+SECRET_MESSAGE = "Our greatest weakness lies in giving up. The most certain way to succeed is always to try just one more time. Thomas Edison"
+SECRET_MESSAGE2 = "“Many of life's failures are people who did not realize how close they were to success when they gave up.”. Thomas Edison"
+SECRET_MESSAGE3 = "“I have not failed. I've just found 10,000 ways that won't work.”. Thomas Edison"
+SECRET_MESSAGE4 = "“Genius is one percent inspiration and ninety-nine percent perspiration.”. Thomas Edison"
+SECRET_MESSAGE5 = "“The future belongs to those who believe in the beauty of their dreams.”. Eleanor Roosevelt"
+SALT2 = "Fall2026"
+
+ADMIN_PLAINTEXT_PASSWORD = "Bacs495_FA2026" # This is the password students will capture in the PCAP
+NORMAL_PLAINTEXT_PASSWORD_1 = "BigSecret123"
+NORMAL_PLAINTEXT_PASSWORD_2 = "secret456"
 
 # --- UTILITY FUNCTION ---
 def hash_password(password, salt=SALT):

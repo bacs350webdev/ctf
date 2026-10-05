@@ -72,7 +72,7 @@ def init_db():
         # The unique ID ensures the secret table is only populated once
         secret_id = 1
 
-        encrypted_secret = xor_encrypt(config.SECRET_MESSAGE, encryption_key)
+        encrypted_secret = xor_encrypt(config.SECRET_MESSAGE2, encryption_key)
         #, encryption_key_hash) removed from table below
         cursor.execute('''
             INSERT OR REPLACE INTO secrets (id, encrypted_message, encryption_key_hash) 

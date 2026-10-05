@@ -74,7 +74,7 @@ def hash_password_submit(password):
     hash the user's plaintext password to match the hash stored in the database.
     This value must match the SALT used in db_setup.py.
     """
-    KNOWN_SALT = 'Fall2025' 
+    KNOWN_SALT = 'Fall2026' 
     
     # Using .format() for Python 3.4 compatibility
     # The process is: hash(SALT + password)
@@ -96,8 +96,8 @@ def index():
         # No configuration hints are passed.
     }
     # Using the single, simplified student_view template
-    # return render_template('student_view.html', **template_data)
-    return render_template('instructor_view.html', **template_data)
+    return render_template('student_view.html', **template_data)
+    #return render_template('instructor_view.html', **template_data)
 
 @app.route('/ctf_access', methods=['POST'])
 def ctf_access():
